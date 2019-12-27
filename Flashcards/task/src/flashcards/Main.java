@@ -12,12 +12,17 @@ public class Main {
         List<String> keys = new ArrayList<>();
         List<String> log = new ArrayList<>();
         SortedMap<String, Integer> mistakes = new TreeMap<>();
+        File file;
 
         if ((args.length == 2 || args.length == 4) && args[0].equals("-import")) {
-            load(cards, keys, log, mistakes, args[1]);
+            file = new File(args[1]);
+            log.add("-import " + file);
+            loadFromFile(cards, keys, log, mistakes, file, true);
         }
         if (args.length == 4 && args[2].equals("-import")) {
-            load(cards, keys, log, mistakes, args[3]);
+            file = new File(args[3]);
+            log.add("-import " + file);
+            loadFromFile(cards, keys, log, mistakes, file, true);
         }
 
         System.out.println("Input the action (add, remove, import, export, ask, exit, " +
@@ -30,16 +35,24 @@ public class Main {
         while(!action.equals("exit")) {
             switch (action) {
                 case "add":
-                    addCard(cards, keys, log);
+                    addCard(cards, keys, log, mistakes);
                     break;
                 case "remove":
                     removeCard (cards, keys, log, mistakes);
                     break;
                 case "import":
-                    loadFromFile(cards, keys, log, mistakes);
+                    System.out.println("File name:");
+                    log.add("File name:");
+                    file = new File(scanner.nextLine());
+                    log.add(file + "");
+                    loadFromFile(cards, keys, log, mistakes, file, false);
                     break;
                 case "export":
-                    saveToFile(cards, keys, log, mistakes);
+                    System.out.println("File name:");
+                    log.add("File name:");
+                    file = new File(scanner.nextLine());
+                    log.add(file + "");
+                    saveToFile(cards, keys, log, mistakes, file, false);
                     break;
                 case "ask":
                     askForDefinition(cards, keys, log, mistakes);
@@ -66,89 +79,20 @@ public class Main {
         }
 
         if ((args.length == 2 || args.length == 4) && args[0].equals("-export")) {
-            File file = new File(args[1]);
+            file = new File(args[1]);
             log.add("-export " + file);
-            int count = 0;
-
-            FileWriter writer = null;
-            try {
-                writer = new FileWriter(file);
-                for (int i = 0; i < cards.size(); i++) {
-                    writer.write(keys.get(i) + "\n");
-                    writer.write(cards.get(keys.get(i)) + "\n");
-                    if (mistakes.containsKey(keys.get(i))) {
-                        writer.write(mistakes.get(keys.get(i)) + "\n");
-                    } else {
-                        writer.write(0 + "\n");
-                    }
-                    count++;
-                }
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            System.out.println("Bye bye!\n" + count + " cards have been saved.");
-            log.add("Bye bye!\n" +  count + " cards have been saved.");
+            saveToFile(cards, keys, log, mistakes, file, true);
         } else if (args.length == 4 && args[2].equals("-export")) {
-            File file = new File(args[3]);
+            file = new File(args[3]);
             log.add("-export " + file);
-            int count = 0;
-
-            FileWriter writer = null;
-            try {
-                writer = new FileWriter(file);
-                for (int i = 0; i < cards.size(); i++) {
-                    writer.write(keys.get(i) + "\n");
-                    writer.write(cards.get(keys.get(i)) + "\n");
-                    if (mistakes.containsKey(keys.get(i))) {
-                        writer.write(mistakes.get(keys.get(i)) + "\n");
-                    } else {
-                        writer.write(0 + "\n");
-                    }
-                    count++;
-                }
-                writer.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            System.out.println("Bye bye!\n" + count + " cards have been saved.");
-            log.add("Bye bye!\n" +  count + " cards have been saved.");
+            saveToFile(cards, keys, log, mistakes, file, true);
         } else {
             System.out.println("Bye bye!");
             log.add("Bye bye!");
         }
     }
 
-    public static void load (Map cards, List keys, List log, Map mistakes, String arg) {
-        File file = new File(arg);
-        log.add("-import " + file);
-        int count = 0;
-
-        Scanner scanner = null;
-        try {
-            scanner = new Scanner(file);
-            while (scanner.hasNext()) {
-                String term = scanner.nextLine();
-                log.add(term);
-                String definition = scanner.nextLine();
-                log.add(definition);
-                int mistake = Integer.parseInt(scanner.nextLine());
-                cards.put(term, definition);
-                keys.add(term);
-                mistakes.put(term, mistake);
-                count++;
-            }
-            System.out.println(count + " cards have been loaded.");
-            log.add(count + " cards have been loaded.");
-        } catch (FileNotFoundException e) {
-        }
-
-        return;
-    }
-
-    public static Map addCard(Map cards, List keys, List log) {
+    public static void addCard(Map<String, String> cards, List<String> keys, List<String> log, Map<String, Integer> mistakes) {
         System.out.println("The card:");
         log.add("The card:");
         String term = scanner.nextLine();
@@ -169,14 +113,15 @@ public class Main {
             } else {
                 cards.put(term, definition);
                 keys.add(term);
+                mistakes.put(term, 0);
+
                 System.out.println("The pair (\"" + term + "\":\"" + definition + "\") has been added.");
                 log.add("The pair (\"" + term + "\":\"" + definition + "\") has been added.");
             }
         }
-        return cards;
     }
 
-    public static Map removeCard (Map cards, List keys, List log, Map mistakes) {
+    public static void removeCard (Map<String, String> cards, List<String> keys, List<String> log, Map<String, Integer> mistakes) {
         System.out.println("The card:");
         log.add("The card:");
         String term = scanner.nextLine();
@@ -192,19 +137,12 @@ public class Main {
             System.out.println("Can't remove \"" + term + "\": there is no such card.");
             log.add("Can't remove \"" + term + "\": there is no such card.");
         }
-        return cards;
     }
 
-    public static Map loadFromFile(Map cards, List keys, List log, Map mistakes) {
-        System.out.println("File name:");
-        log.add("File name:");
-        File file = new File(scanner.nextLine());
-        log.add(file);
+    public static void loadFromFile(Map<String, String> cards, List<String> keys, List<String> log, Map<String, Integer> mistakes, File file, boolean arg) {
         int count = 0;
-
-        Scanner scanner = null;
         try {
-            scanner = new Scanner(file);
+            Scanner scanner = new Scanner(file);
             while (scanner.hasNext()) {
                 String term = scanner.nextLine();
                 log.add(term);
@@ -219,46 +157,41 @@ public class Main {
             System.out.println(count + " cards have been loaded.");
             log.add(count + " cards have been loaded.");
         } catch (FileNotFoundException e) {
-            System.out.println("File not found.");
-            log.add("File not found.");
+            if(!arg) {
+                System.out.println("File not found.");
+                log.add("File not found.");
+            }
         }
-        return cards;
     }
 
-    public static Map saveToFile(Map cards, List keys, List log, Map mistakes) {
-        System.out.println("File name:");
-        log.add("File name:");
-        File file = new File(scanner.nextLine());
-        log.add(file);
+    public static void saveToFile(Map<String, String> cards, List<String> keys, List<String> log, Map<String, Integer> mistakes, File file, boolean arg) {
         int count = 0;
-
-        FileWriter writer = null;
         try {
-            writer = new FileWriter(file);
+            FileWriter writer = new FileWriter(file);
             for (int i = 0; i < cards.size(); i++) {
                 writer.write(keys.get(i) + "\n");
                 writer.write(cards.get(keys.get(i)) + "\n");
-                if(mistakes.containsKey(keys.get(i))) {
-                    writer.write(mistakes.get(keys.get(i)) + "\n");
-                }
+                writer.write(mistakes.get(keys.get(i)) + "\n");
                 count++;
             }
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        System.out.println(count + " cards have been saved.");
-        log.add(count + " cards have been saved.");
-        return cards;
+        if(arg) {
+            System.out.println("Bye bye!\n" + count + " cards have been saved.");
+            log.add("Bye bye!\n" +  count + " cards have been saved.");
+        } else {
+            System.out.println(count + " cards have been saved.");
+            log.add(count + " cards have been saved.");
+        }
     }
 
-    public static Map askForDefinition(Map cards, List keys, List log, Map mistakes) {
+    public static void askForDefinition(Map<String, String> cards, List<String> keys, List<String> log, Map<String, Integer> mistakes) {
         System.out.println("How many times to ask?");
         log.add("How many times to ask?");
-        int count = scanner.nextInt();
-        log.add(count);
-        String empty = scanner.nextLine();
+        int count = Integer.parseInt(scanner.nextLine());
+        log.add(count + "");
 
         for(int i = 0; i < count; i++) {
             Random random = new Random();
@@ -273,7 +206,6 @@ public class Main {
                 System.out.println("Correct answer.");
                 log.add("Correct answer.");
             } else if (cards.containsValue(answer)) {
-
                 for (int j = 0; j < cards.size(); j++) {
                     if (answer.equals(cards.get(keys.get(j)))) {
                         System.out.println("Wrong answer. The correct one is \"" + cards.get(keys.get(index)) + "\", " +
@@ -283,63 +215,49 @@ public class Main {
                         break;
                     }
                 }
-
-                if(mistakes.containsKey(keys.get(index))) {
-                    mistakes.put(keys.get(index), (int) mistakes.get(keys.get(index)) + 1);
-                } else {
-                    mistakes.put(keys.get(index),1);
-                }
-
+                mistakes.put(keys.get(index), mistakes.get(keys.get(index)) + 1);
             } else {
                 System.out.println("Wrong answer. The correct one is \"" + cards.get(keys.get(index)) + "\".");
                 log.add("Wrong answer. The correct one is \"" + cards.get(keys.get(index)) + "\".");
-
-                if(mistakes.containsKey(keys.get(index))) {
-                    mistakes.put(keys.get(index), (int) mistakes.get(keys.get(index)) + 1);
-                } else {
-                    mistakes.put(keys.get(index), 1);
-                }
+                mistakes.put(keys.get(index), mistakes.get(keys.get(index)) + 1);
             }
         }
-        return cards;
     }
 
-    public static void log(List log) {
+    public static void log(List<String> log) {
         System.out.println("File name:");
         log.add("File name:");
         File file = new File(scanner.nextLine());
-        log.add(file);
+        log.add(file + "");
         log.add("The log has been saved.");
 
-        FileWriter writer = null;
         try {
-            writer = new FileWriter(file);
-            for (int i = 0; i < log.size(); i++) {
-                writer.write(log.get(i) + "\n");
+            FileWriter writer = new FileWriter(file);
+            for (String line : log) {
+                writer.write(line + "\n");
             }
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
         System.out.println("The log has been saved.");
-
-        return;
     }
 
-    public static void hardestCard(Map mistakes, List log) {
+    public static void hardestCard(Map<String, Integer> mistakes, List<String> log) {
         if (mistakes.isEmpty()) {
             System.out.println("There are no cards with errors.");
             log.add("There are no cards with errors.");
         } else {
-            Integer maxErrors = 0;
+            int maxErrors = 0;
             ArrayList<String> hardestCard = new ArrayList<>();
-            for(Object str : mistakes.keySet()) {
-                if((int) mistakes.get(str) > maxErrors) {
-                    maxErrors = (int) mistakes.get(str);
+
+            for(String term : mistakes.keySet()) {
+                if(mistakes.get(term) > maxErrors) {
+                    maxErrors = mistakes.get(term);
                     hardestCard.clear();
-                    hardestCard.add(str.toString());
-                } else if((int) mistakes.get(str) == maxErrors) {
-                    hardestCard.add(str.toString());
+                    hardestCard.add(term);
+                } else if(mistakes.get(term) == maxErrors) {
+                    hardestCard.add(term);
                 }
             }
             if(hardestCard.size() == 1) {
@@ -360,13 +278,10 @@ public class Main {
                         "\". You have " + maxErrors + " errors answering them.");
             }
         }
-        return;
     }
 
-    public static void resetStats(Map mistakes, List log) {
+    public static void resetStats(Map<String, Integer> mistakes, List<String> log) {
         mistakes.clear();
         System.out.println("Card statistics has been reset.");
         log.add("Card statistics has been reset.");
-        return;
     }
-}
